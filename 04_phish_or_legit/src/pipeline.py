@@ -18,13 +18,16 @@ from sklearn.pipeline import Pipeline
 
 SEED = 42
 URL_RE = re.compile(r"(?:https?://|www\.)\S+|\b\w+\.(?:com|org|info|ly)\S*", re.I)
-MONEY_RE = re.compile(r"\$\s?\d+(?:[.,]\d+)?")
+MONEY_RE = re.compile(r"(?:[$€£]|\b(?:usd|eur|gbp)\s?)\s?\d[\d.,]*", re.I)
+# "c l a i m", "e-m a i l", "i n t e r e s t e d": 4+ single letters separated by one space/hyphen/dot
+SPACED_RE = re.compile(r"\b(?:[a-z][ \-.]){3,}[a-z]\b")
 NUM_RE = re.compile(r"\d+")
 
 
 def preprocess(text: str) -> str:
     """Lower-case and replace URLs / money / numbers by placeholder tokens (normalisation, as in Lab 01)."""
     text = text.lower()
+    text = SPACED_RE.sub(lambda m: re.sub(r"[ \-.]", "", m.group()), text)   # undo letter-spacing obfuscation
     text = URL_RE.sub(" urltok ", text)
     text = MONEY_RE.sub(" moneytok ", text)
     return NUM_RE.sub(" numtok ", text)

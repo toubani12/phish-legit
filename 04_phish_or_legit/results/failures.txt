@@ -1,10 +1,10 @@
-False negatives (phish predicted legit): 29
-  score=0.13 | Dear customer, A payment of $7.67 is pending. You can manage this in the app settings. https://vg9ys-login.info/aqjv
-  score=0.33 | Notice: Your parcel from BlueFright has an update. You can manage this in the app settings. Immediately. http://tinyurl.com/e5z8d70
-  score=0.25 | ALERT: ParcelGo: your package is waiting. http://tinyurl.com/p7s5e1b Thanks
-  score=0.19 | Your Civic Savings account has a new notice. http://bit.ly/tp99jp
-False positives (legit predicted phish): 24
-  score=0.57 | Hello, BlueFreight could not deliver your package today. Please reply as soon as you can.
-  score=0.61 | Northban: there is a message about your account. Log in to confirm. https://docs.example.com/d/7estf1
-  score=0.52 | Your invoice of $21.12 is ready. Update your payment info. https://docs.example.com/d/k5isac
-  score=0.55 | SwiftPost could not deliver your package today. This is your final notice. https://www.example.com/orders/8777
+False negatives (phish predicted legit): 31
+  score=0.19 | Hello, We noticed activity on your Civic Savings account. You can manage this in he app settings. https://xhm8l-login.info/a9b3
+  score=0.25 | Running late, see you Friday at 5. Confirm your details. This is your final notice.
+  score=0.30 | We recived a payment of $43.27. Log in to confirm.
+  score=0.17 | hello, swiftpost could not deliver your package today. https://meet.example.org/cu16iaji
+False positives (legit predicted phish): 18
+  score=0.51 | BlueFreight: your package is waiting. Update your payment info. https://docs.example.com/d/ma64zs
+  score=0.60 | Your invoice o $82.45 is ready. Confirm your details. https://meet.example.org/j91aee6p
+  score=0.60 | Hi, We noticed activity on your Delta Credit account. Within 24 hours or your access will be suspended.
+  score=0.54 | Good news: a $250 gift card is reserved for you.

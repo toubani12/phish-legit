@@ -27,11 +27,14 @@ SERVICES = ["StreamBox", "CloudDrive", "MusicNest"]
 TIMES = ["6pm", "7:30", "noon", "8am", "tomorrow at 9", "Friday at 5"]
 MEALS = ["dinner", "lunch", "coffee", "the match"]
 
-TOPICS = ["account", "package", "code", "payment", "subscription", "prize", "appointment", "order", "chat"]
+TOPICS = ["account", "package", "code", "payment", "subscription", "prize", "appointment", "order", "chat",
+          "windfall", "business"]
 WEIGHTS = {
-    "phish": [0.28, 0.20, 0.08, 0.14, 0.10, 0.12, 0.01, 0.02, 0.05],
-    "legit": [0.12, 0.14, 0.10, 0.10, 0.06, 0.01, 0.15, 0.14, 0.18],
+    "phish": [0.24, 0.17, 0.07, 0.12, 0.08, 0.10, 0.01, 0.02, 0.04, 0.15, 0.00],
+    "legit": [0.11, 0.13, 0.09, 0.09, 0.06, 0.01, 0.13, 0.13, 0.16, 0.00, 0.09],
 }
+TYCOONS = ["the chairman of a global bank", "a retired oil executive", "the CEO of a large foundation",
+           "a lawyer acting for a late client", "a widow with a charity fund"]
 ACTION_KINDS = ["credential", "payment", "app", "none"]
 ACTION_W = {"phish": [0.50, 0.30, 0.05, 0.15], "legit": [0.08, 0.10, 0.40, 0.42]}
 ACTIONS = {
@@ -81,10 +84,29 @@ def topic_sentence(rng, topic):
         "appointment": [f"Your appointment is {rng.choice(TIMES)}.", f"Meeting moved to {rng.choice(TIMES)}.",
                         f"Reminder: class starts {rng.choice(TIMES)}."],
         "order": [f"Thanks for your order #{rng.randint(10000, 99999)}.", f"Your order #{rng.randint(10000, 99999)} has shipped."],
+        "windfall": [f"Your e-mail address was chosen at random to receive USD{rng.randint(1, 9)},{rng.randint(100, 999)},000.00 "
+                     f"from {rng.choice(TYCOONS)}. If you are interested, reply to learn how to claim the donation.",
+                     f"I am {rng.choice(TYCOONS)}. You have been selected to inherit EUR{rng.randint(1, 9)}.{rng.randint(10, 99)} million. "
+                     "Contact me privately to claim your share.",
+                     f"Ref No: {rid(rng, 4).upper()}/{rng.randint(10000, 99999)}. Congratulations, your email won the "
+                     f"lottery of ${rng.randint(1, 9)},{rng.randint(100, 999)},000. Send your full name and phone to claim."],
+        "business": [f"Please find attached invoice {rng.randint(10000, 99999)} for USD{rng.randint(1, 9)},{rng.randint(100, 999)}.00, due next month.",
+                     f"Ref No: {rid(rng, 4).upper()}/{rng.randint(10000, 99999)}. Your contract renewal is confirmed for EUR{rng.randint(100, 900)}.00.",
+                     "Thank you for your interest in the position. We will contact you after the interviews."],
         "chat": [f"Are we still on for {rng.choice(MEALS)} at {rng.choice(TIMES)}?", "Can you call me later?",
                  f"Running late, see you {rng.choice(TIMES)}."],
     }
     return rng.choice(pool[topic])
+
+
+def obfuscate(rng, text):
+    """Spam trick: space out the 'trigger' words so keyword filters miss them (c l a i m, e-m a i l)."""
+    for w in ["claim", "email", "e-mail", "interested", "donation", "winner", "lottery", "bank", "account"]:
+        if w in text.lower() and rng.random() < 0.6:
+            i = text.lower().index(w)
+            sep = rng.choice([" ", "-"])
+            text = text[:i] + sep.join(text[i:i + len(w)]) + text[i + len(w):]
+    return text
 
 
 def compose(rng, label):
@@ -99,7 +121,8 @@ def compose(rng, label):
         parts.append(rng.choice(URGENCY))
     if rng.random() < P_LINK[label]:
         parts.append(bad_url(rng) if rng.random() < P_BAD_URL[label] else good_url(rng))
-    return " ".join(parts)
+    msg = " ".join(parts)
+    return obfuscate(rng, msg) if label == "phish" and rng.random() < 0.3 else msg
 
 
 def noisy(rng, text):
