@@ -36,6 +36,12 @@ def preprocess(text: str) -> str:
 DATA_PATH = Path(__file__).resolve().parent.parent / "data" / "messages.csv"
 
 
+def find_obfuscation(text: str):
+    """Letter-spaced words found in the ORIGINAL text, as (as written, decoded) pairs."""
+    return [(m.group(), re.sub(r"[ \-.]", "", m.group()))
+            for m in SPACED_RE.finditer(text.lower())]
+
+
 def load_data(path=DATA_PATH):
     df = pd.read_csv(path)
     df["y"] = (df["label"] == "phish").astype(int)          # 1 = phish, 0 = legit
