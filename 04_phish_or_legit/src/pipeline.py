@@ -5,6 +5,7 @@ classifier weights) lives inside one scikit-learn Pipeline fitted on the TRAIN p
 prevents data leakage.
 """
 import re
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -29,7 +30,10 @@ def preprocess(text: str) -> str:
     return NUM_RE.sub(" numtok ", text)
 
 
-def load_data(path="data/messages.csv"):
+DATA_PATH = Path(__file__).resolve().parent.parent / "data" / "messages.csv"
+
+
+def load_data(path=DATA_PATH):
     df = pd.read_csv(path)
     df["y"] = (df["label"] == "phish").astype(int)          # 1 = phish, 0 = legit
     return df
