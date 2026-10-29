@@ -8,6 +8,7 @@ import os
 import numpy as np
 from sklearn.calibration import calibration_curve
 from sklearn.metrics import (brier_score_loss, confusion_matrix, precision_recall_fscore_support)
+from sklearn.model_selection import cross_val_predict, StratifiedKFold
 
 from src.pipeline import load_data, split, make_pipeline, global_top_features
 
@@ -64,6 +65,37 @@ def main():
         pr, rc, f1, _ = precision_recall_fscore_support(yte, pred, average="binary", zero_division=0)
         print(f"  threshold {th:<4}: precision {pr:.3f}  recall {rc:.3f}  F1 {f1:.3f}")
 
+    # --- threshold selection on TRAIN ONLY (5-fold out-of-fold scores), then report the test score once.
+    # Policy: a human reviews every flagged message, so a missed phishing costs more than a false alarm;
+    # we take the LOWEST threshold (= highest recall) that still keeps precision >= 0.80.
+    oof = cross_val_predict(make_pipeline("lr"), Xtr, ytr, cv=StratifiedKFold(5, shuffle=True, random_state=42),
+                            method="predict_proba")[:, 1]
+    chosen = 0.5
+    for th in np.arange(0.05, 0.96, 0.01):
+        pr_, _, _, _ = precision_recall_fscore_support(ytr, (oof >= th).astype(int), average="binary", zero_division=0)
+        if pr_ >= 0.80:
+            chosen = round(float(th), 2)
+            break
+    pr, rc, f1, _ = precision_recall_fscore_support(yte, (p_lr >= chosen).astype(int), average="binary", zero_division=0)
+    cm_sel = confusion_matrix(yte, (p_lr >= chosen).astype(int))
+    selected = {"threshold": chosen, "selected_on": "5-fold out-of-fold train scores, precision >= 0.80",
+                "test_precision": pr, "test_recall": rc, "test_f1": f1, "confusion_matrix": cm_sel.tolist()}
+    print(f"\nSelected threshold (chosen on train CV, NOT on test): {chosen} -> test precision {pr:.3f} "
+          f"recall {rc:.3f} F1 {f1:.3f}")
+    print(cm_sel)
+
+    # --- per-source results (synthetic vs real SMS spam), Logistic Regression @ 0.5
+    src_te = df.loc[Xte.index, "source"].to_numpy() if "source" in df else None
+    per_source = {}
+    if src_te is not None:
+        print("\nPer-source results (Logistic Regression, threshold 0.5):")
+        for s_name in sorted(set(src_te)):
+            m = src_te == s_name
+            pr, rc, f1, _ = precision_recall_fscore_support(yte[m], (p_lr[m] >= 0.5).astype(int),
+                                                            average="binary", zero_division=0)
+            per_source[s_name] = {"n_test": int(m.sum()), "precision": pr, "recall": rc, "f1": f1}
+            print(f"  {s_name:<14} n={m.sum():<4} precision {pr:.3f}  recall {rc:.3f}  F1 {f1:.3f}")
+
     pos, neg = global_top_features(lr)
     print("\nStrongest 'phish' features:", pos[:6])
     print("Strongest 'legit' features:", neg[:6])
@@ -80,7 +112,7 @@ def main():
     open("results/failures.txt", "w", encoding="utf-8").write("\n".join(lines))
     print("\n" + "\n".join(lines))
 
-    json.dump({"models": results, "confusion_matrix_lr": cm.tolist()}, open("results/metrics.json", "w"), indent=2)
+    json.dump({"models": results, "confusion_matrix_lr": cm.tolist(), "per_source_lr": per_source, "selected_threshold": selected}, open("results/metrics.json", "w"), indent=2)
 
     import matplotlib
     matplotlib.use("Agg")

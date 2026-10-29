@@ -1,10 +1,10 @@
-False negatives (phish predicted legit): 31
-  score=0.19 | Hello, We noticed activity on your Civic Savings account. You can manage this in he app settings. https://xhm8l-login.info/a9b3
-  score=0.25 | Running late, see you Friday at 5. Confirm your details. This is your final notice.
-  score=0.30 | We recived a payment of $43.27. Log in to confirm.
-  score=0.17 | hello, swiftpost could not deliver your package today. https://meet.example.org/cu16iaji
+False negatives (phish predicted legit): 30
+  score=0.03 | Do you realize that in about 40 years, we'll have thousands of old ladies running around with tattoos?
+  score=0.22 | Your MusicNest subscription renews soon. Log in to confirm.
+  score=0.12 | Notice: BlueFreight: your package is waiting. Pay the fee now.
+  score=0.18 | Your parcel from SwiftPost has an update. Pay the fee now.
 False positives (legit predicted phish): 18
-  score=0.51 | BlueFreight: your package is waiting. Update your payment info. https://docs.example.com/d/ma64zs
-  score=0.60 | Your invoice o $82.45 is ready. Confirm your details. https://meet.example.org/j91aee6p
-  score=0.60 | Hi, We noticed activity on your Delta Credit account. Within 24 hours or your access will be suspended.
-  score=0.54 | Good news: a $250 gift card is reserved for you.
+  score=0.61 | Your Northbank account has a new notice. Within 24 hours or your access will be suspended. https://docs.example.com/d/lvlhlo
+  score=0.51 | Use code 345989 to continue. Pay the fee now. http://bit.ly/fzr9xf
+  score=0.68 | Your invoice o $82.45 is ready. Confirm your details. https://meet.example.org/j91aee6p
+  score=0.61 | SwiftPost could not deliver your package today. Update your payment info. https://docs.example.com/d/vmxe5f

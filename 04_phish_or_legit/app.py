@@ -3,8 +3,10 @@ import json
 import re
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import streamlit as st
+from sklearn.metrics import precision_recall_fscore_support
 
 from src.pipeline import (load_data, split, make_pipeline, predict, word_weights, contributions,
                           find_obfuscation)
@@ -21,15 +23,20 @@ EXAMPLES = {
                        "c l a i m it.\n\nRegards,\nEdward Buffe",
     "💬 Friendly chat": "Are we still on for dinner at 7:30? Running late, see you soon.",
     "🧾 Legit invoice": "Your invoice of $65.47 is ready. Details are in your online account.",
+    "❌ Missed phishing (FN)": "Notice: BlueFreight: your package is waiting. Pay the fee now.",
+    "❌ False alarm (FP)": "Your Northbank account has a new notice. Within 24 hours or your access will be "
+                          "suspended. https://docs.example.com/d/lvlhlo",
 }
+DEFAULT_THR = 0.31   # chosen on train cross-validation (see results/metrics.json and the report)
 FRIENDLY = {"urltok": "a link", "numtok": "a number", "moneytok": "a money amount"}
 
 
 @st.cache_resource(show_spinner="Training the model on first load...")
 def get_model():
     df = load_data()
-    Xtr, _, ytr, _ = split(df)
-    return make_pipeline("lr").fit(Xtr, ytr), make_pipeline("lr_cal").fit(Xtr, ytr)
+    Xtr, Xte, ytr, yte = split(df)
+    lr = make_pipeline("lr").fit(Xtr, ytr)
+    return lr, make_pipeline("lr_cal").fit(Xtr, ytr), lr.predict_proba(Xte)[:, 1], np.asarray(yte)
 
 
 def level(score, thr):
@@ -51,29 +58,35 @@ def highlight(text, weights):
     return "".join(parts)
 
 
-model, model_cal = get_model()
+model, model_cal, p_test, y_test = get_model()
 
 with st.sidebar:
     st.header("Settings")
-    thr = st.slider("Phishing threshold", 0.20, 0.90, 0.50, 0.05,
+    thr = st.slider("Phishing threshold", 0.05, 0.95, DEFAULT_THR, 0.01,
                     help="Lower = catch more scams but more false alarms. Higher = fewer false alarms but more misses.")
-    st.caption("Recall vs precision (logistic regression, test set): 0.2 → 0.93 / 0.58 · 0.5 → 0.69 / 0.79 · "
-               "0.9 → 0.17 / 1.00")
+    pr_, rc_, _, _ = precision_recall_fscore_support(y_test, (p_test >= thr).astype(int), average="binary",
+                                                     zero_division=0)
+    st.metric("Test precision / recall at this threshold", f"{pr_:.2f} / {rc_:.2f}")
+    st.caption(f"Default {DEFAULT_THR} = lowest threshold with precision ≥ 0.80 on train cross-validation. "
+               "Raising it → fewer false alarms, more missed phishing.")
     st.divider()
     st.caption("Trained on a SYNTHETIC dataset with fictional brands. Labels mean 'phishing-style' vs 'legit', "
                "not real-world ground truth.")
 
 st.title("🎣 Phish or Legit?")
+st.warning("This tool supports a human decision and does not block messages by itself. The data is synthetic "
+           "(plus a sample of the public UCI SMS Spam Collection, which is spam, not phishing).")
 st.caption("TF-IDF + logistic regression · paste a message and see why the model decides what it does.")
 
 tab_cls, tab_perf, tab_about = st.tabs(["Classify", "Model performance", "About"])
 
 with tab_cls:
     st.write("Try an example:")
-    cols = st.columns(len(EXAMPLES))
-    for col, (name, ex) in zip(cols, EXAMPLES.items()):
-        if col.button(name, width="stretch"):
-            st.session_state["msg"] = ex
+    for row in (list(EXAMPLES.items())[:3], list(EXAMPLES.items())[3:]):
+        for col, (name, ex) in zip(st.columns(3), row):
+            if col.button(name, width="stretch"):
+                st.session_state["msg"] = ex
+                st.session_state.pop("result", None)
     st.session_state.setdefault("msg", EXAMPLES["🏦 Bank phishing"])
     text = st.text_area("Paste a message:", key="msg", height=160)
     st.caption(f"{len(text)} characters")
@@ -82,9 +95,13 @@ with tab_cls:
         try:
             _, score = predict(model, text)
             _, cal_score = predict(model_cal, text)
+            st.session_state["result"] = (text, score, cal_score)
         except ValueError as err:
+            st.session_state.pop("result", None)
             st.error(str(err))
-        else:
+    if "result" in st.session_state:
+        text, score, cal_score = st.session_state["result"]
+        if True:
             name, icon, color = level(score, thr)
             c1, c2 = st.columns([2, 1])
             c1.markdown(f"## {icon} :{color}[{name}]")
